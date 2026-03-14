@@ -26,6 +26,10 @@ public class KtpServiceImpl implements KtpService {
     public KtpDto AddKtp(KtpAddRequest request) {
         validationUtil.validate(request);
 
+        if (request.getTanggalLahir() != null && request.getTanggalLahir().isAfter(java.time.LocalDate.now())) {
+            throw new RuntimeException("Tanggal lahir tidak boleh setelah hari ini");
+        }
+
         if (ktpRepository.existsByNomorKtp(request.getNomorKtp())) {
             throw new RuntimeException("Nomor KTP already exists: " + request.getNomorKtp());
         }

@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <style>
         :root {
             --primary: #2563eb;
@@ -76,6 +77,18 @@
             background: var(--primary-hover);
             transform: translateY(-2px);
             box-shadow: 0 6px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(239, 68, 68, 0.3);
         }
 
         .btn-ghost {
@@ -303,6 +316,23 @@
         </main>
     </div>
 
+    <!-- Confirm Modal -->
+    <div id="confirmBackdrop" class="modal-backdrop">
+        <div class="modal" id="confirmModal" style="max-width: 400px; text-align: center;">
+            <div style="margin-bottom: 1.5rem;">
+                <div style="width: 60px; height: 60px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.25rem;">
+                    <svg width="30" height="30" fill="none" stroke="var(--error)" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                </div>
+                <h2 style="font-size: 1.5rem; margin-bottom: 0.5rem;">Hapus Data</h2>
+                <p style="color: var(--text-muted); font-size: 0.95rem; line-height: 1.5;">Apakah Anda yakin ingin menghapus data ini?</p>
+            </div>
+            <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                <button type="button" class="btn btn-ghost" onclick="closeConfirmModal()" style="flex: 1;">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteBtn" style="flex: 1;">Ya, Hapus</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Form -->
     <div id="modalBackdrop" class="modal-backdrop">
         <div class="modal" id="ktpModal">
@@ -348,137 +378,166 @@
 
     <script>
         const API_URL = '/ktp';
-        const modal = document.getElementById('modalBackdrop');
-        const form = document.getElementById('ktpForm');
-        const ktpBody = document.getElementById('ktpBody');
+        let deleteId = null;
 
-        // Initial Load
-        document.addEventListener('DOMContentLoaded', loadData);
+        $(document).ready(function() {
+            // Set max date to today
+            const today = new Date().toISOString().split('T')[0];
+            $('#tanggalLahir').attr('max', today);
 
-        async function loadData() {
-            try {
-                const response = await fetch(API_URL);
-                const result = await response.json();
-                
-                ktpBody.innerHTML = '';
-                if (result.status === 'success') {
-                    result.data.forEach(item => {
-                        const row = `
-                            <tr>
-                                <td style="font-family: monospace; font-weight: 600;">${item.nomorKtp}</td>
-                                <td>${item.namaLengkap}</td>
-                                <td style="color: var(--text-muted); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.alamat}</td>
-                                <td>${new Date(item.tanggalLahir).toLocaleDateString()}</td>
-                                <td><span class="badge ${item.jenisKelamin === 'L' ? 'badge-male' : 'badge-female'}">${item.jenisKelamin}</span></td>
-                                <td class="actions">
-                                    <button class="action-btn action-edit" onclick="editData(${item.id})" title="Edit">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
-                                    </button>
-                                    <button class="action-btn action-delete" onclick="deleteData(${item.id})" title="Hapus">
-                                        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                                    </button>
-                                </td>
-                            </tr>
-                        `;
-                        ktpBody.insertAdjacentHTML('beforeend', row);
+            loadData();
+
+            $('#confirmDeleteBtn').on('click', function() {
+                if (deleteId) {
+                    $.ajax({
+                        url: `${API_URL}/${deleteId}`,
+                        method: 'DELETE',
+                        success: function(result) {
+                            if (result.status === 'success') {
+                                showToast(result.message);
+                                loadData();
+                            }
+                            closeConfirmModal();
+                        },
+                        error: function() {
+                            showToast('Gagal menghapus data', 'error');
+                            closeConfirmModal();
+                        }
                     });
                 }
-            } catch (error) {
-                showToast('Gagal memuat data', 'error');
-            }
-        }
+            });
 
-        form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const id = document.getElementById('editId').value;
-            const data = {
-                nomorKtp: document.getElementById('nomorKtp').value,
-                namaLengkap: document.getElementById('namaLengkap').value,
-                alamat: document.getElementById('alamat').value,
-                tanggalLahir: document.getElementById('tanggalLahir').value,
-                jenisKelamin: document.getElementById('jenisKelamin').value
-            };
+            $('#ktpForm').on('submit', function(e) {
+                e.preventDefault();
+                const id = $('#editId').val();
+                const data = {
+                    nomorKtp: $('#nomorKtp').val(),
+                    namaLengkap: $('#namaLengkap').val(),
+                    alamat: $('#alamat').val(),
+                    tanggalLahir: $('#tanggalLahir').val(),
+                    jenisKelamin: $('#jenisKelamin').val()
+                };
 
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `${API_URL}/${id}` : API_URL;
+                const method = id ? 'PUT' : 'POST';
+                const url = id ? `${API_URL}/${id}` : API_URL;
 
-            try {
-                const response = await fetch(url, {
+                $.ajax({
+                    url: url,
                     method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(result) {
+                        if (result.status === 'success') {
+                            showToast(result.message);
+                            closeModal();
+                            loadData();
+                        } else {
+                            showToast(result.message, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        const errorMsg = xhr.responseJSON ? xhr.responseJSON.message : 'Terjadi kesalahan sistem';
+                        showToast(errorMsg, 'error');
+                    }
                 });
-                const result = await response.json();
-
-                if (result.status === 'success') {
-                    showToast(result.message);
-                    closeModal();
-                    loadData();
-                } else {
-                    showToast(result.message, 'error');
-                }
-            } catch (error) {
-                showToast('Terjadi kesalahan system', 'error');
-            }
+            });
         });
 
-        async function editData(id) {
-            try {
-                const response = await fetch(`${API_URL}/${id}`);
-                const result = await response.json();
-                if (result.status === 'success') {
-                    const item = result.data;
-                    document.getElementById('editId').value = item.id;
-                    document.getElementById('nomorKtp').value = item.nomorKtp;
-                    document.getElementById('namaLengkap').value = item.namaLengkap;
-                    document.getElementById('alamat').value = item.alamat;
-                    document.getElementById('tanggalLahir').value = item.tanggalLahir;
-                    document.getElementById('jenisKelamin').value = item.jenisKelamin;
+        function loadData() {
+            $.ajax({
+                url: API_URL,
+                method: 'GET',
+                success: function(result) {
+                    const ktpBody = $('#ktpBody');
+                    ktpBody.empty();
                     
-                    document.getElementById('modalTitle').innerText = 'Edit Data KTP';
-                    openModal();
+                    if (result.status === 'success') {
+                        result.data.forEach(item => {
+                            const row = `
+                                <tr>
+                                    <td style="font-family: monospace; font-weight: 600;">${item.nomorKtp}</td>
+                                    <td>${item.namaLengkap}</td>
+                                    <td style="color: var(--text-muted); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${item.alamat}</td>
+                                    <td>${new Date(item.tanggalLahir).toLocaleDateString()}</td>
+                                    <td><span class="badge ${item.jenisKelamin === 'L' ? 'badge-male' : 'badge-female'}">${item.jenisKelamin}</span></td>
+                                    <td class="actions">
+                                        <button class="action-btn action-edit" onclick="editData(${item.id})" title="Edit">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+                                        </button>
+                                        <button class="action-btn action-delete" onclick="deleteData(${item.id})" title="Hapus">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            ktpBody.append(row);
+                        });
+                    }
+                },
+                error: function() {
+                    showToast('Gagal memuat data', 'error');
                 }
-            } catch (error) {
-                showToast('Gagal mengambil detail data', 'error');
-            }
+            });
         }
 
-        async function deleteData(id) {
-            if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-                try {
-                    const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-                    const result = await response.json();
+        function editData(id) {
+            $.ajax({
+                url: `${API_URL}/${id}`,
+                method: 'GET',
+                success: function(result) {
                     if (result.status === 'success') {
-                        showToast(result.message);
-                        loadData();
+                        const item = result.data;
+                        $('#editId').val(item.id);
+                        $('#nomorKtp').val(item.nomorKtp);
+                        $('#namaLengkap').val(item.namaLengkap);
+                        $('#alamat').val(item.alamat);
+                        $('#tanggalLahir').val(item.tanggalLahir);
+                        $('#jenisKelamin').val(item.jenisKelamin);
+                        
+                        $('#modalTitle').text('Edit Data KTP');
+                        openModal();
                     }
-                } catch (error) {
-                    showToast('Gagal menghapus data', 'error');
+                },
+                error: function() {
+                    showToast('Gagal mengambil detail data', 'error');
                 }
-            }
+            });
+        }
+
+        function deleteData(id) {
+            deleteId = id;
+            $('#confirmBackdrop').css('display', 'flex');
+            setTimeout(() => $('#confirmModal').addClass('active'), 10);
+        }
+
+        function closeConfirmModal() {
+            $('#confirmModal').removeClass('active');
+            setTimeout(() => {
+                $('#confirmBackdrop').hide();
+                deleteId = null;
+            }, 300);
         }
 
         function openModal() {
-            modal.style.display = 'flex';
-            setTimeout(() => document.getElementById('ktpModal').classList.add('active'), 10);
+            $('#modalBackdrop').css('display', 'flex');
+            setTimeout(() => $('#ktpModal').addClass('active'), 10);
         }
 
         function closeModal() {
-            document.getElementById('ktpModal').classList.remove('active');
+            $('#ktpModal').removeClass('active');
             setTimeout(() => {
-                modal.style.display = 'none';
-                form.reset();
-                document.getElementById('editId').value = '';
-                document.getElementById('modalTitle').innerText = 'Tambah Data KTP';
+                $('#modalBackdrop').hide();
+                $('#ktpForm')[0].reset();
+                $('#editId').val('');
+                $('#modalTitle').text('Tambah Data KTP');
             }, 300);
         }
 
         function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.innerText = message;
-            toast.style.borderColor = type === 'error' ? 'var(--error)' : 'var(--success)';
-            toast.style.display = 'block';
-            setTimeout(() => { toast.style.display = 'none'; }, 3000);
+            const toast = $('#toast');
+            toast.text(message);
+            toast.css('border-color', type === 'error' ? 'var(--error)' : 'var(--success)');
+            toast.fadeIn().delay(3000).fadeOut();
         }
     </script>
 </body>
