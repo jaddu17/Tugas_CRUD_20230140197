@@ -1,22 +1,22 @@
 Tugas 1
 
-post : ![img.png](post.png)
+post : ![img.png](ss/post.png)
 
-get : ![img.png](get.png)
+get : ![img.png](ss/get.png)
 
-get by id : ![img.png](getbyId.png)
+get by id : ![img.png](ss/getbyId.png)
 
-put : ![img.png](put.png)
+put : ![img.png](ss/put.png)
 
-delete : ![img.png](delete.png)
+delete : ![img.png](ss/delete.png)
 
-nomor ktp sama : ![img.png](nomorktpsama.png)
+nomor ktp sama : ![img.png](ss/nomorktpsama.png)
 
-tampilan web : ![img.png](web.png)
+tampilan web : ![img.png](ss/web.png)
 
-form tambah data : ![img.png](formpostdata.png)
+form tambah data : ![img.png](ss/formpostdata.png)
 
-validasi : ![img.png](validasi.png) , 
-![img.png](img.png)
+validasi : ![img.png](ss/validasi.png) , 
+![img.png](ss/img.png)
 
-form edit data : ![img.png](formeditdata.png)
+form edit data : ![img.png](ss/formeditdata.png)
